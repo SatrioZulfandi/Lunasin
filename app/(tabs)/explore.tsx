@@ -1,112 +1,161 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useBillStore } from '../../src/store/useBillStore';
+import { BillCard } from '../../src/components/BillCard';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function HistoryScreen() {
+  const bills = useBillStore((state) => state.bills);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState('all'); // 'all', 'paid', 'unpaid'
 
-export default function TabTwoScreen() {
+  const filteredBills = bills.filter(bill => {
+    const matchesSearch = bill.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filter === 'all' ? true : filter === 'paid' ? bill.isPaid : !bill.isPaid;
+    return matchesSearch && matchesFilter;
+  }).sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()); // Sort newest first
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.headerTitle}>Semua Tagihan</Text>
+
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Cari tagihan..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#9CA3AF"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.filterContainer}>
+          <TouchableOpacity 
+            style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
+            onPress={() => setFilter('all')}
+          >
+            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>Semua</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.filterChip, filter === 'unpaid' && styles.filterChipActiveUnpaid]}
+            onPress={() => setFilter('unpaid')}
+          >
+            <Text style={[styles.filterText, filter === 'unpaid' && {color: '#991B1B'}]}>Belum Lunas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.filterChip, filter === 'paid' && styles.filterChipActivePaid]}
+            onPress={() => setFilter('paid')}
+          >
+            <Text style={[styles.filterText, filter === 'paid' && {color: '#065F46'}]}>Lunas</Text>
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          data={filteredBills}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => <BillCard bill={item} />}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="search-outline" size={64} color="#D1D5DB" />
+              <Text style={styles.emptyText}>Tidak ada tagihan ditemukan.</Text>
+            </View>
+          }
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
-  titleContainer: {
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  searchContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
     gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
+  },
+  filterChipActive: {
+    backgroundColor: '#DBEAFE',
+    borderWidth: 1,
+    borderColor: '#2563EB',
+  },
+  filterChipActiveUnpaid: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  filterChipActivePaid: {
+    backgroundColor: '#D1FAE5',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  filterTextActive: {
+    color: '#1E40AF',
+  },
+  listContent: {
+    paddingBottom: 24,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#9CA3AF',
   },
 });
